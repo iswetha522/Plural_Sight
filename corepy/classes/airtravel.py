@@ -101,31 +101,120 @@ class Flight:
 
         self._seating[to_row][to_letter] = self._seating[from_row][from_letter]
         self._seating[from_row][from_letter] = None
+
+
+    def num_available_seats(self):
+        return sum(sum(1 for s in row.values() if s is None)
+                    for row in self._seating
+                    if row is not None)
+
+
+    def make_boarding_cards(self, card_printer):
+        for passenger, seat in sorted(self._passenger_seats()):
+            card_printer(passenger, seat, self.number(), self.aircraft_model())
+
+    
+    def _passenger_seats(self):
+        """An iterable series of passenger seating locations."""
+        row_numbers, seat_letters = self._aircraft.seating_plan()
+        for row in row_numbers:
+            for letter in seat_letters:
+                passenger = self._seating[row][letter]
+                if passenger is not None:
+                    yield (passenger, f"{row}{letter}")
+
+# Removed after using polymorphism:
+# class Aircraft:
+#     def __init__(self, registration, model, num_rows, num_seats_per_row):
+#         self._registration = registration
+#         self._model = model
+#         self._num_rows = num_rows
+#         self._num_seats_per_row = num_seats_per_row
+
+
+#     def registration(self):
+#         return self._registration
+    
+
+#     def model(self):
+#         return self._model
+
+
+#     def seating_plan(self):
+#         return(range(1, self._num_rows + 1),
+#                 "ABCDEFGHJK"[:self._num_seats_per_row])
+
+
+# Using Inheritance:
 class Aircraft:
-    def __init__(self, registration, model, num_rows, num_seats_per_row):
+    
+    # pylint: disable=no-member
+    # pylint: disable=E1101
+    def __init__(self,registration):
         self._registration = registration
-        self._model = model
-        self._num_rows = num_rows
-        self._num_seats_per_row = num_seats_per_row
 
 
     def registration(self):
         return self._registration
-    
 
+
+    def num_seats(self):
+        rows, row_seats = self.seating_plan()
+        return len(rows) * len(row_seats)
+
+# "Using Polymorphism"
+# Using objects of different types through a uniform interface.
+# It applies to both functions as well as more complex types.
+class AirbusA319(Aircraft):
+    
     def model(self):
-        return self._model
+        return "Airbus A319"
 
 
     def seating_plan(self):
-        return(range(1, self._num_rows + 1),
-                "ABCDEFGHJK"[:self._num_seats_per_row])
+        return range(1, 23), "ABCDEF"
 
 
-def make_flight():
-    # f = Flight("BA758", Aircraft=("G-Eupt", "Airbus A319", num_rows=22, num_seats_per_row = 6))
-    # f.allocate_seat("12A", "Guido van Rossum")
-    pass
+class Boeing777(Aircraft):
+    
+    def model(self):
+        return "Boeing 777"
+
+
+    def seating_plan(self):
+        return range(1, 56), "ABCDEGHJK"
+
+
+def console_card_printer(passenger, seat, flight_number, aircraft):
+    output = f"| Name: {passenger}" \
+             f" Flight: {flight_number}" \
+             f" Seat : {seat}" \
+             f" Aircraft: {aircraft}" \
+             " |"
+    banner = "+" + "-" * (len(output) - 2) + "+"
+    border = "|" + " " * (len(output) - 2) + "|"
+    lines = [banner, border, output, border, banner]
+    card = "\n".join(lines)
+    print(card)
+    print()
+
+
+def make_flights():
+    f = Flight("BA758", AirbusA319("G-Eupt"))
+    f.allocate_seat("12A", "Guido van Rossum")
+    f.allocate_seat("15F", "Bjarne Stroustrup")
+    f.allocate_seat("15E", "Anders, Hejlsberg")
+    f.allocate_seat("1C", "John McCarthy")
+    f.allocate_seat("1D","Rich Hickey")
+
+    g = Flight("AF72", Boeing777("F-GSPS"))
+    g.allocate_seat("55K", "LArry Wall")
+    g.allocate_seat("33G", "Yukihiro Matsumoto")
+    g.allocate_seat("4B", "Brain Kernighan")
+    g.allocate_seat("4A", "Dennis Ritchie")
+
+    return f, g
+    
     
 # f = Flight("SN060")
 # print(f.number())
@@ -146,3 +235,21 @@ def make_flight():
 # # f.allocate_seat("E27", 'Yukihiro Matsumoto') # ValueError: Invalid seat letter 7
 # f.allocate_seat("DD", 'swetha') # ValueError: Invalid seat row D
 # pp(f._seating)
+f, g = make_flights()
+# pp(f._seating)
+# f.relocate_passenger("12A", "15D")
+# pp(f._seating)
+# print(f.num_available_seats())
+# print(f.make_boarding_cards(console_card_printer))
+print(f.aircraft_model())
+print(g.aircraft_model())
+print(f.num_available_seats)
+print(g.num_available_seats)
+g.relocate_passenger("55K", "13G")
+g.make_boarding_cards(console_card_printer)
+
+a = AirbusA319("G-EZBT")
+print(a.num_seats())
+
+b = Boeing777("N717AN")
+print(b.num_seats())
